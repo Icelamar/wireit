@@ -795,7 +795,7 @@ test(
     assert.equal(
       done.stderr.trim(),
       `
-❌ [../bar:b] Invalid JSON in package.json file in ${pathlib.resolve(
+❌ [../bar:b] Invalid JSON syntax in package.json file in ${pathlib.resolve(
         rig.temp,
         'bar'
       )}

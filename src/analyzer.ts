@@ -6,7 +6,7 @@
 
 import * as pathlib from 'path';
 import {WireitError} from './error.js';
-import {astKey, CachingPackageJsonReader} from './util/package-json-reader.js';
+import {CachingPackageJsonReader} from './util/package-json-reader.js';
 import {scriptReferenceToString, stringToScriptReference} from './script.js';
 
 import type {CachingPackageJsonReaderError} from './util/package-json-reader.js';
@@ -118,9 +118,9 @@ export class Analyzer {
    * upgraded; dependencies are upgraded asynchronously.
    */
   async #upgradePlaceholder(placeholder: PlaceholderConfig): Promise<void> {
-    let packageJson;
+    let packageJsonAst;
     try {
-      packageJson = await this.#packageJsonReader.read(
+      packageJsonAst = await this.#packageJsonReader.read(
         placeholder.packageDir,
         placeholder
       );
@@ -141,7 +141,6 @@ export class Analyzer {
       }
     }
 
-    const packageJsonAst = packageJson[astKey];
     const scriptsSection = findNamedNodeAtLocation(
       packageJsonAst,
       ['scripts'],
@@ -186,11 +185,7 @@ export class Analyzer {
 
     const wireitConfig =
       wireitSection &&
-      (findNamedNodeAtLocation(
-        wireitSection,
-        [placeholder.name],
-        placeholder
-      ) as undefined | NamedAstNode);
+      findNamedNodeAtLocation(wireitSection, [placeholder.name], placeholder);
     if (wireitConfig !== undefined) {
       assertJsonObject(
         placeholder,
@@ -220,10 +215,7 @@ export class Analyzer {
 
     const dependencies: Array<PlaceholderConfig> = [];
     const dependenciesAst =
-      wireitConfig &&
-      (findNodeAtLocation(wireitConfig, ['dependencies']) as
-        | undefined
-        | AstNode);
+      wireitConfig && findNodeAtLocation(wireitConfig, ['dependencies']);
     if (dependenciesAst !== undefined) {
       assertArray(placeholder, dependenciesAst, 'dependencies');
       // Error if the same dependency is declared multiple times. Duplicate
@@ -274,7 +266,9 @@ export class Analyzer {
       );
       command = scriptCommand;
     } else {
-      const commandAst = findNodeAtLocation(wireitConfig, ['command']) as undefined | AstNode<string>;
+      const commandAst = findNodeAtLocation(wireitConfig, ['command']) as
+        | undefined
+        | AstNode<string>;
       if (commandAst !== undefined) {
         assertNonBlankString(
           placeholder,
@@ -300,9 +294,7 @@ export class Analyzer {
         });
       }
 
-      const filesNode = findNodeAtLocation(wireitConfig, ['files']) as
-        | undefined
-        | AstNode;
+      const filesNode = findNodeAtLocation(wireitConfig, ['files']);
       if (filesNode !== undefined) {
         files = {node: filesNode, values: []};
         assertArray(placeholder, filesNode, 'files');
@@ -314,9 +306,7 @@ export class Analyzer {
         }
       }
 
-      const outputNode = findNodeAtLocation(wireitConfig, ['output']) as
-        | undefined
-        | AstNode;
+      const outputNode = findNodeAtLocation(wireitConfig, ['output']);
       if (outputNode !== undefined) {
         output = {node: outputNode, values: []};
         assertArray(placeholder, outputNode, 'output');
@@ -352,8 +342,8 @@ export class Analyzer {
 
       const packageLocksNode = findNodeAtLocation(wireitConfig, [
         'packageLocks',
-      ]) as AstNode | undefined;
-      let packageLocks: undefined | {node: AstNode, values: string[]};
+      ]);
+      let packageLocks: undefined | {node: AstNode; values: string[]};
       if (packageLocksNode !== undefined) {
         assertArray(placeholder, packageLocksNode, 'packageLocks');
         packageLocks = {node: packageLocksNode, values: []};
